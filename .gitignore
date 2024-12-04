@@ -1,3 +1,6 @@
+*~
 .vscode
-*.out
 *input.txt
+*.out
+bazel-*
+*MODULE.bazel.lock

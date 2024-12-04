@@ -52,9 +52,16 @@ int PartTwo(const std::string& instructions)
     return total;
 }
 
-int main()
+int main(int argc, char* argv[])
 {
-    auto instructions = FileToStr("example_input.txt");
+    if (argc < 2) {
+
+        std::cerr << "Missing input file!" << std::endl;
+        return 1;
+    }
+
+    std::string input_path = argv[1];
+    auto instructions = FileToStr(input_path);
 
     std::cout << "Part one: " << PartOne(instructions) << '\n';
     std::cout << "Part two: " << PartTwo(instructions) << '\n';

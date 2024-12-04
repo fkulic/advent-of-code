@@ -64,9 +64,17 @@ std::size_t PartTwo(std::vector<std::vector<int>>& report)
     });
 }
 
-int main()
+int main(int argc, char* argv[])
 {
-    auto data = FileToVector("example_input.txt");
+    if (argc < 2) {
+
+        std::cerr << "Missing input file!" << std::endl;
+        return 1;
+    }
+
+    std::string input_path = argv[1];
+    auto data = FileToVector(input_path);
+    
     std::cout << "Part one: " << PartOne(data) << '\n';
     std::cout << "Part two: " << PartTwo(data) << '\n';
 }

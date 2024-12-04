@@ -28,7 +28,7 @@ std::pair<std::vector<int>, std::vector<int>> FileToTwoVectors(const std::string
     }
 
     file.close();
-    return {first, second};
+    return { first, second };
 }
 
 std::size_t PartOne(std::vector<int>& first_list, std::vector<int>& second_list)
@@ -36,7 +36,7 @@ std::size_t PartOne(std::vector<int>& first_list, std::vector<int>& second_list)
     std::ranges::sort(first_list);
     std::ranges::sort(second_list);
     std::size_t total_sum { 0 };
-    for (auto i { 0 }; i < first_list.size(); ++i) {
+    for (std::size_t i { 0 }; i < first_list.size(); ++i) {
         total_sum += std::abs(first_list[i] - second_list[i]);
     }
     return total_sum;
@@ -56,9 +56,16 @@ std::size_t PartTwo(std::vector<int>& first_list, std::vector<int>& second_list)
     return similarity_score;
 }
 
-int main()
+int main(int argc, char* argv[])
 {
-    auto [example_first_list, example_second_list] = FileToTwoVectors("example_input.txt");
+    if (argc < 2) {
+
+        std::cerr << "Missing input file!" << std::endl;
+        return 1;
+    }
+
+    std::string input_path = argv[1];
+    auto [example_first_list, example_second_list] = FileToTwoVectors(input_path);
 
     std::cout << "Part one: " << PartOne(example_first_list, example_second_list) << '\n';
     std::cout << "Part two: " << PartTwo(example_first_list, example_second_list) << '\n';
