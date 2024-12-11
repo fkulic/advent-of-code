@@ -1,22 +1,16 @@
 from hashlib import md5
 
 
-def hash_starts_with_n_zeros(n: int):
+def hash_starts_with_n_zeros(data: str, n: int) -> int:
     i = 0
-    s = "0"*n
+    s = "0" * n
     while not md5((data + str(i)).encode()).hexdigest().startswith(s):
-        i+=1
+        i += 1
     return i
-
-def part_one(data: str) -> int:
-    return hash_starts_with_n_zeros(5)
-
-def part_two(data: str) -> int:
-    return hash_starts_with_n_zeros(6)
 
 
 if __name__ == "__main__":
     data = "xyz"
 
-    print("FIRST PART", part_one(data))
-    print("SECOND PART", part_two(data))
+    print("FIRST PART", hash_starts_with_n_zeros(data, 5))
+    print("SECOND PART", hash_starts_with_n_zeros(data, 6))
