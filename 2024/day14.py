@@ -4,14 +4,9 @@ from collections import defaultdict
 from functools import reduce
 from pathlib import Path
 
-import numpy as np
-from PIL import Image
-
 ROWS, COLS = 103, 101
 HALF_R = ROWS // 2
 HALF_C = COLS // 2
-
-IMAGES_DIR = Path(__file__).parent / f"day14_trees"
 
 
 def get_map() -> list[list[int]]:
@@ -42,38 +37,36 @@ def first_part(data: list[str]) -> int:
     return safety_factor(robot_positions)
 
 
-def second_part(data: list[str]) -> str:
+def second_part(data: list[str]) -> int:
     values = []
+    robot_positions = defaultdict(int)
     for line in data:
         left, right = line.strip().split()
         y, x = [int(v) for v in left.split("=")[1].split(",")]
         dy, dx = [int(v) for v in right.split("=")[1].split(",")]
         values.append([x, y, dx, dy])
+        robot_positions[(x, y)] += 1
 
     s = 0
+    sf = 5000000000
+    second_with_lowest_sf = 0
     for i in range(1, 10000):
         s += 1
         for i, v in enumerate(values):
             x, y, dx, dy = v
+            robot_positions[(x, y)] -= 1
             y = (y + dy) % COLS
             x = (x + dx) % ROWS
             values[i][0] = x
             values[i][1] = y
+            robot_positions[(x, y)] += 1
 
-        # Dumb solution, robot positions white and save 10000 images
-        map = get_map()
-        for x, y, dx, dy in values:
-            map[x][y] = 255
+        new_sf = safety_factor(robot_positions)
+        if new_sf < sf:
+            sf = new_sf
+            second_with_lowest_sf = s
 
-        grayscale_array = np.array(map, dtype=np.uint8)
-        image = Image.fromarray(grayscale_array, mode="L")
-        image.save(
-            IMAGES_DIR / f"{s}.png",
-            bbox_inches="tight",
-            pad_inches=0,
-        )
-
-    return f"Look through images, I have no idea how tree looks like: {IMAGES_DIR.absolute()}"
+    return second_with_lowest_sf
 
 
 if __name__ == "__main__":
