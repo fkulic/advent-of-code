@@ -28,7 +28,7 @@ class Directions:
         self._i = 0
 
     @classmethod
-    def get_direction(cls, a: str) -> Point:  # type: ignore
+    def get_direction(cls, a: str) -> Point:
         assert a in "^>v<"
         match a:
             case "^":
@@ -48,21 +48,6 @@ class Directions:
         return direction
 
 
-def print_p1_warehouse(warehouse, walls, boxes, robot) -> None:
-    for i in range(len(warehouse)):
-        for j in range(len(warehouse[0])):
-            p = Point(i, j)
-            if p in walls:
-                print("#", end="")
-            elif p in boxes:
-                print("O", end="")
-            elif p == robot:
-                print("@", end="")
-            else:
-                print(".", end="")
-        print()
-
-
 def first_part(warehouse: list[list[str]], directions: Directions) -> int:
     robot = None
     boxes = set()
@@ -78,7 +63,6 @@ def first_part(warehouse: list[list[str]], directions: Directions) -> int:
                     walls.add(Point(i, j))
     assert robot
     while d := directions.next():
-        # print_warehouse(warehouse, walls, boxes, robot)
         in_front = robot + d
         if in_front in walls:
             continue
@@ -106,111 +90,94 @@ def first_part(warehouse: list[list[str]], directions: Directions) -> int:
     return sum(p.x * 100 + p.y for p in boxes)
 
 
-def print_p2_warehouse(warehouse, walls, boxes, robot) -> None:
-    for i in range(len(warehouse)):
-        skip =set()
-        for j in range(len(warehouse[0]) * 2):
-            if j in skip:
+class P2Solution:
+
+    def __init__(self, warehouse: list[list[str]], directions: Directions) -> None:
+        self.directions: Directions = directions
+        self.boxes_p: dict[Point, int] = dict()
+        self.boxes: list[tuple[Point, Point]] = []
+        self.walls: set[Point] = set()
+        self.dimensions = Point(len(warehouse), len(warehouse[0] * 2))
+        for i, r in enumerate(warehouse):
+            for j, c in enumerate(r):
+                p1 = Point(i, 2 * j)
+                p2 = Point(i, 2 * j + 1)
+                match c:
+                    case "@":
+                        self.robot: Point = p1
+                    case "O":
+                        self.boxes_p[p1] = self.boxes_p[p2] = len(self.boxes)
+                        self.boxes.append((p1, p2))
+                    case "#":
+                        self.walls.update((p1, p2))
+
+    def solve(self) -> int:
+        while d := directions.next():
+            in_front = self.robot + d
+            if in_front in self.walls:
                 continue
-            p = Point(i, j)
-            if p in walls:
-                print("#", end="")
-            elif p in boxes:
-                print("[]", end="")
-                skip.add(j+1)
-            elif p == robot:
-                print("@", end="")
+
+            if in_front not in self.boxes_p:
+                self.robot = in_front
+            elif d.x != 0:
+                self._move_vertically(in_front, d)
             else:
-                print(".", end="")
-        print()
+                self._move_horizontally(in_front, d)
 
+        return sum(p.x * 100 + p.y for p, _ in self.boxes)
 
-def second_part(warehouse: list[list[str]], directions: Directions) -> int:
-    robot = None
-    boxes_p = dict()
-    boxes = []
-    walls = set()
-    for i, r in enumerate(warehouse):
-        for j, c in enumerate(r):
-            p1 = Point(i, 2 * j)
-            p2 = Point(i, 2 * j+1)
-            match c:
-                case "@":
-                    robot = p1
-                case "O":
-                    boxes_p[p1] = len(boxes)
-                    boxes_p[p2] = len(boxes)
-                    boxes.append((p1, p2))
-                case "#":
-                    walls.add(p1)
-                    walls.add(p2)
-    assert robot
-    while d := directions.next():
-        # print_p2_warehouse(warehouse, walls, boxes_p, robot)
-        in_front = robot + d
-        vertical =  d.x != 0
-        if in_front in walls:
-            continue
-        if in_front not in boxes_p:
-            robot = in_front
-        else:
-            b_to_move = set()
-            if vertical:
-                idx = boxes_p[in_front]
-                check = deque([])
-                check.append([boxes[idx]])
-                visited = set()
-                while check:
-                    can_move = True
-                    for box in check.popleft():
-                        for p in box:
-                            if p in visited:
-                                continue
-                            visited.add(p)
-                            b_in_front = p + d
-                            if b_in_front in walls:
-                                can_move = False
-                                break
-                            b_to_move.add(boxes_p[p])
-                            if b_in_front in boxes_p:
-                                idx_in_front = boxes_p[b_in_front]
-                                check.append([boxes[idx_in_front]])
-                    if not can_move:
-                        b_to_move = set()
-                        break
-            else:
-                idx = boxes_p[in_front]
-                check = deque([boxes[idx]])
-                while check:
-                    b1, b2 = check.popleft()
-                    p = b1 if d.y == -1 else b2
-                    b_in_front = p + d
-                    if b_in_front in walls:
-                        b_to_move = set()
-                        break
-                    b_to_move.add(boxes_p[p])
-                    if b_in_front in boxes_p:
-                        idx_in_front = boxes_p[b_in_front]
-                        check.append(boxes[idx_in_front])
-                    else:
-                        break
+    def _move_vertically(self, in_front: Point, direction: Point):
+        idx: int = self.boxes_p[in_front]
+        check: deque[tuple[Point, Point]] = deque([self.boxes[idx]])
+        visited = set()
+        b_to_move = set()
 
-            if b_to_move:
-                robot = in_front
-            temp_boxes = deepcopy(boxes)
-            for idx in b_to_move:
-                b1, b2 = temp_boxes[idx]
-                b1_new, b2_new = b1 + d, b2 + d
-                boxes[idx] = (b1_new, b2_new)
-                del boxes_p[b1]
-                del boxes_p[b2]
-            for idx in b_to_move:
-                (b1, b2) = boxes[idx]
-                boxes_p[b1] = idx
-                boxes_p[b2] = idx
+        while check:
+            box = check.popleft()
+            for p in box:
+                if p in visited:
+                    continue
+                visited.add(p)
+                b_in_front = p + direction
+                if b_in_front in self.walls:
+                    return
+                b_to_move.add(self.boxes_p[p])
+                if b_in_front in self.boxes_p:
+                    check.append(self.boxes[self.boxes_p[b_in_front]])
 
-    # print_p2_warehouse(warehouse, walls, boxes_p, robot)
-    return sum(p.x * 100 + p.y for p, _ in boxes)
+        self.robot = in_front
+        self._move_boxes(b_to_move, direction)
+
+    def _move_horizontally(self, in_front: Point, direction: Point):
+        b_to_move = set()
+        idx = self.boxes_p[in_front]
+        check = deque([self.boxes[idx]])
+        while check:
+            b1, b2 = check.popleft()
+            p = b1 if direction.y == -1 else b2
+            b_in_front = p + direction
+            if b_in_front in self.walls:
+                return
+            b_to_move.add(self.boxes_p[p])
+            if b_in_front in self.boxes_p:
+                idx_in_front = self.boxes_p[b_in_front]
+                check.append(self.boxes[idx_in_front])
+
+        self.robot = in_front
+        self._move_boxes(b_to_move, direction)
+
+    def _move_boxes(self, b_to_move: set[int], direction: Point) -> None:
+        temp_boxes = deepcopy(self.boxes)
+        for idx in b_to_move:
+            b1, b2 = temp_boxes[idx]
+            b1_new, b2_new = b1 + direction, b2 + direction
+            self.boxes[idx] = (b1_new, b2_new)
+            del self.boxes_p[b1]
+            del self.boxes_p[b2]
+        for idx in b_to_move:
+            (b1, b2) = self.boxes[idx]
+            self.boxes_p[b1] = idx
+            self.boxes_p[b2] = idx
 
 
 if __name__ == "__main__":
@@ -223,4 +190,6 @@ if __name__ == "__main__":
 
     print("FIRST PART", first_part(warehouse, directions))
     directions.reset()
-    print("SECOND PART", second_part(warehouse, directions))
+
+    part_two = P2Solution(warehouse, directions)
+    print("SECOND PART", part_two.solve())
