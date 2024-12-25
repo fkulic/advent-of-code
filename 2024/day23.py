@@ -34,6 +34,31 @@ def part_one(connections: dict[str, set[str]]) -> int:
     return len(three_interconnected)
 
 
+def bron_kerbosch(
+    R: set[str], P: set[str], X: set[str], connections: dict[str, set[str]], cliques: list[set[str]]
+) -> None:
+    if len(P) == 0 and len(X) == 0:
+        cliques.append(R)
+        return
+    for v in list(P):
+        bron_kerbosch(
+            R | {v},
+            P & connections[v],
+            X & connections[v],
+            connections,
+            cliques,
+        )
+        P.remove(v)
+        X.add(v)
+
+
+def part_two(connections: dict[str, set[str]]) -> str:
+    cliques = []
+    bron_kerbosch(set(), set(connections.keys()), set(), connections, cliques)
+    lan_party = max(cliques, key=len)
+    return ",".join(sorted(lan_party))
+
+
 if __name__ == "__main__":
     assert len(sys.argv) > 1, "No input path"
     input_path = Path(sys.argv[1])
@@ -47,4 +72,4 @@ if __name__ == "__main__":
         connections[b].add(a)
 
     print("FIRST PART", part_one(connections))
-    # print("SECOND PART", part_two(connections))
+    print("SECOND PART", part_two(connections))
