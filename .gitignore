@@ -5,3 +5,4 @@
 bazel-*
 *MODULE.bazel.lock
 *.png
+*.dot
