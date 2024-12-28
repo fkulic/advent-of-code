@@ -1,12 +1,8 @@
-from collections import defaultdict, deque
-from dataclasses import dataclass
-from functools import cache
 import sys
+from collections import Counter
+from functools import cache
 from pathlib import Path
 
-sys.setrecursionlimit(10**6)
-
-GAP = (3, 0)
 numeric_dimensions = (4, 3)
 numeric_mapping = {
     "7": (0, 0),
@@ -23,12 +19,9 @@ numeric_mapping = {
 }
 
 
-def get_numeric_combination(combination: str, c_button: str = "A") -> str:
-    if len(combination) == 0:
-        return ""
-    c_pos = numeric_mapping[c_button]
-    next_button = combination[0]
-    next_pos = numeric_mapping[next_button]
+def _get_numeric_combination(to_button: str, from_button: str = "A") -> str:
+    c_pos = numeric_mapping[from_button]
+    next_pos = numeric_mapping[to_button]
 
     out = []
     dx, dy = next_pos[0] - c_pos[0], next_pos[1] - c_pos[1]
@@ -48,10 +41,19 @@ def get_numeric_combination(combination: str, c_button: str = "A") -> str:
         out += [">" for _ in range(abs(dy))]
 
     out.append("A")
-    return "".join(out) + get_numeric_combination(combination[1:], next_button)
+    return "".join(out)
 
 
-GAP = (0, 0)
+def get_numeric_combination(combination: str):
+    dpad_combinations = []
+    for i, buton in enumerate(combination):
+        if i == 0:
+            dpad_combinations.append(_get_numeric_combination(buton))
+        else:
+            dpad_combinations.append(_get_numeric_combination(buton, combination[i - 1]))
+    return Counter(dpad_combinations)
+
+
 directional_dimensions = (2, 3)
 directional_mapping = {
     "^": (0, 1),
@@ -63,25 +65,7 @@ directional_mapping = {
 
 
 @cache
-def reverse(combination) -> str:
-    Q = deque(combination)
-    l = []
-    while Q:
-        n = Q.pop()
-        match n:
-            case "^":
-                l.append("v")
-            case "<":
-                l.append(">")
-            case "v":
-                l.append("^")
-            case ">":
-                l.append("<")
-    return "".join(l)
-
-
-@cache
-def _get_directional_combination(to_button: str, from_button: str = "A"):
+def dpad_combination_between_buttons(to_button: str, from_button: str = "A"):
     c_pos = directional_mapping[from_button]
     next_pos = directional_mapping[to_button]
 
@@ -106,23 +90,49 @@ def _get_directional_combination(to_button: str, from_button: str = "A"):
     return f"{comb}A"
 
 
-def get_directional_combination(combination: str, last="A"):
+DPAD_CACHE = {}
+def _get_directional_combination(combination: str, last="A"):
     if len(combination) == 0:
         return ""
 
-    current = combination[0]
-    return _get_directional_combination(current, last) + get_directional_combination(combination[1:], current)
+    if combination in DPAD_CACHE:
+        return DPAD_CACHE[combination]
+
+    new_dpad_combination = []
+    for i, buton in enumerate(combination):
+        if i == 0:
+            new_dpad_combination.append(dpad_combination_between_buttons(buton))
+        else:
+            new_dpad_combination.append(dpad_combination_between_buttons(buton, combination[i - 1]))
+
+    DPAD_CACHE[combination] = new_dpad_combination
+
+    return new_dpad_combination
 
 
-def part_one(data: list[str]) -> int:
-    res = []
+def get_directional_combination(combinations: Counter[str]):
+    new_combinations = Counter()
+    for dpad_comb, count in combinations.items():
+        for combination in _get_directional_combination(dpad_comb):
+            new_combinations[combination] += count
+
+    return new_combinations
+
+
+def both_parts(data: list[str]) -> tuple[int, int]:
+    first = 0
+    second = 0
     for i, comb in enumerate(data):
+        num_input = int(comb[:-1])
         n_comb = get_numeric_combination(comb)
-        for _ in range(2):
+        for i in range(25):
             n_comb = get_directional_combination(n_comb)
-        res.append((len(n_comb), int(comb[:-1])))
-    print(res)
-    return sum(c * n for c, n in res)
+            if i == 1:
+                total_len = sum(len(dpad_combination) * count for dpad_combination, count in n_comb.items())
+                first += total_len * num_input
+        total_len = sum(len(dpad_combination) * count for dpad_combination, count in n_comb.items())
+        second += total_len * num_input
+    return first, second
 
 
 if __name__ == "__main__":
@@ -132,4 +142,6 @@ if __name__ == "__main__":
     assert input_path.is_file(), "Not file"
     data = input_path.read_text().strip().splitlines()
 
-    print("FIRST PART", part_one(data))
+    first, second = both_parts(data)
+    print("FIRST PART", first)
+    print("SECOND PART", second)
