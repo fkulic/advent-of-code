@@ -1,7 +1,7 @@
-from copy import deepcopy
-from itertools import permutations
 import re
 import sys
+from copy import deepcopy
+from itertools import permutations
 from pathlib import Path
 
 
