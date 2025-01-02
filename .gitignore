@@ -2,7 +2,5 @@
 .vscode
 *input.txt
 *.out
-bazel-*
-*MODULE.bazel.lock
 *.png
 *.dot
