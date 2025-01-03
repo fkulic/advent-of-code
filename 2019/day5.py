@@ -1,7 +1,6 @@
 import re
 import sys
 from copy import deepcopy
-from itertools import permutations
 from pathlib import Path
 
 from intcode import IntCodeComputer
@@ -12,22 +11,13 @@ def ints_in_str(s: str) -> list[int]:
 
 
 def part_one(memory: list[int]) -> int:
-    m = deepcopy(memory)
-    m[1], m[2] = 12, 2
-    computer = IntCodeComputer(m, None)
+    computer = IntCodeComputer(deepcopy(memory), lambda: 1)
     computer.run_intcode()
-    return m[0]
+    return computer.output[-1]
 
 
 def part_two(memory: list[int]) -> int:
-    for noun, verb in permutations(range(100), 2):
-        m = deepcopy(memory)
-        m[1], m[2] = noun, verb
-        computer = IntCodeComputer(m, None)
-        computer.run_intcode()
-        if m[0] == 19690720:
-            return 100 * noun + verb
-    raise Exception("Not possible")
+    return 2
 
 
 if __name__ == "__main__":
