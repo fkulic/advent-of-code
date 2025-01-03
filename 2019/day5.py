@@ -17,7 +17,9 @@ def part_one(memory: list[int]) -> int:
 
 
 def part_two(memory: list[int]) -> int:
-    return 2
+    computer = IntCodeComputer(deepcopy(memory), lambda: 5)
+    computer.run_intcode()
+    return computer.output[-1]
 
 
 if __name__ == "__main__":
