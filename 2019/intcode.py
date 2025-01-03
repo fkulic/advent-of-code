@@ -23,6 +23,7 @@ NUM_IN_ARGS = {
     Instruction.JUMP_IF_FALSE: 2,
     Instruction.LESS_THAN: 2,
     Instruction.EQUALS: 2,
+    Instruction.HALT: 0
 }
 
 
@@ -31,21 +32,23 @@ POSITION_MODE = 0
 
 class IntCodeComputer:
 
-    def __init__(self, memory: list[int], input_function) -> None:
+    def __init__(self, memory: list[int], input_function, output_function=None) -> None:
         self._ip = 0
         self._memory = memory
         self._input_function = input_function
         self._output = []
+        out_function = output_function if output_function else self._output_function
         self._operations = {
             Instruction.ADD: self._wrap_math(operator.add),
             Instruction.MUL: self._wrap_math(operator.mul),
-            Instruction.OUTPUT: self._output_function,
+            Instruction.OUTPUT: out_function,
             Instruction.INPUT: self._wrapped_input_function,
             Instruction.JUMP_IF_TRUE: self._jump_if_true,
             Instruction.JUMP_IF_FALSE: self._jump_if_false,
             Instruction.LESS_THAN: self._wrap_math(operator.lt),
             Instruction.EQUALS: self._wrap_math(operator.eq),
         }
+        self.wait = False
 
     def _wrap_math(self, fun):
         @functools.wraps(fun)
@@ -69,8 +72,13 @@ class IntCodeComputer:
 
     def _wrapped_input_function(self):
         out_address = self._memory[self._ip]
-        self._memory[out_address] = self._input_function()
-        self._ip += 1
+        value = self._input_function()
+        if value is None:
+            self.wait = True
+            self._ip -=1
+        else:
+            self._memory[out_address] = value
+            self._ip += 1
 
     def _get_in_args(self, op, modes):
         n_in = NUM_IN_ARGS[op]
@@ -98,11 +106,11 @@ class IntCodeComputer:
         args = self._get_in_args(op, modes)
         self._operations[op](*args)
 
-    def run_intcode(self) -> int:
-        self._ip = 0
-        while self._memory[self._ip] != Instruction.HALT:
+    def run_intcode(self) -> bool:
+        self.wait = False
+        while self._memory[self._ip] != Instruction.HALT and not self.wait:
             self._execute_op()
-        return self._memory[0]
+        return self._memory[self._ip] == Instruction.HALT
 
     @property
     def output(self):
