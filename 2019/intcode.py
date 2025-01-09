@@ -1,3 +1,4 @@
+from copy import deepcopy
 import functools
 import operator
 from enum import Enum
@@ -57,6 +58,17 @@ class IntCodeComputer:
             Instruction.EQUALS: self._wrap_math(operator.eq),
             Instruction.ADJUST_REL_BASE: self._adjust_rel_base,
         }
+
+    def clone(self, input_function, output_function=None):
+        new_instance = IntCodeComputer(
+            deepcopy(self._memory),
+            input_function,
+            output_function,
+        )
+        new_instance._ip = self._ip
+        new_instance._relative_base = self._relative_base
+        new_instance._output = deepcopy(self._output)
+        return new_instance
 
     def _check_and_extend(self, idx):
         diff = idx - len(self._memory) + 1
