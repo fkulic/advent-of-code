@@ -1,6 +1,7 @@
 import sys
 from collections import defaultdict, deque
 from dataclasses import dataclass
+from itertools import product
 from pathlib import Path
 
 
@@ -40,10 +41,10 @@ def get_paths(start, walls):
             if (prev_doors_passed & doors_passed) == prev_doors_passed:
                 already_visited = True
                 break
-            
+
         if already_visited:
             continue
-        
+
         visited[p].add(doors_passed)
 
         for d in DIRECTIONS:
@@ -68,14 +69,16 @@ def get_paths(start, walls):
 def part_one(start, walls) -> int:
     visited = {}
     Q = deque([(start, 0, 0)])
-    min_cost = 1000000000
+    min_cost = sys.maxsize
 
     while Q:
         current_pos, current_cost, collected_keys = Q.popleft()
 
         if collected_keys == ALL_KEYS:
-            if min_cost > current_cost:
-                min_cost = current_cost
+            min_cost = min(current_cost, min_cost)
+            continue
+
+        if current_cost > min_cost:
             continue
 
         if (current_pos, collected_keys) in visited and visited[(current_pos, collected_keys)] <= current_cost:
@@ -95,8 +98,72 @@ def part_one(start, walls) -> int:
     return min_cost
 
 
-def part_two(start, walls) -> int:
-    return 2
+def transform(portals, walls):
+    start = portals[0]
+
+    walls.add(start)
+    for d in DIRECTIONS:
+        walls.add(start + d)
+
+    portals = [start + p for p in [Point(-1, -1), Point(-1, 1), Point(1, -1), Point(1, 1)]]
+    return portals, walls
+
+
+def part_two(portals: list[Point], walls: set[Point]) -> int:
+    PATH_CACHE.clear()
+    if len(portals) == 1:
+        portals, walls = transform(portals, walls)
+
+    visited = {}
+    min_cost = sys.maxsize
+
+    Q = deque([(portals, [0, 0, 0, 0], 0)])
+
+    while Q:
+        current_positions, current_costs, collected_keys = Q.popleft()
+        possible_combinations = [[], [], [], []]
+
+        total_cost = sum(current_costs)
+        if total_cost > min_cost:
+            continue
+
+        visited_key = tuple(current_positions), collected_keys
+        if visited_key in visited and visited[visited_key] <= total_cost:
+            continue
+        visited[visited_key] = total_cost
+
+        for i in range(4):
+            current_pos = current_positions[i]
+            paths = get_paths(current_pos, walls)
+            for key, paths_doors in paths.items():
+                if key & collected_keys != 0:
+                    continue
+
+                for doors, cost in paths_doors.items():
+                    if (collected_keys & doors) == doors:
+                        possible_combinations[i].append((KEYS[key], cost))
+
+        if collected_keys == ALL_KEYS:
+            min_cost = min(min_cost, sum(current_costs))
+            continue
+
+        for i in range(4):
+            possible_combinations[i].append((current_positions[i], 0))
+
+        for quadrant_combinations in product(*possible_combinations):
+            new_positions = []
+            new_collected_keys = collected_keys
+            new_costs = []
+
+            for i, (pos, cost) in enumerate(quadrant_combinations):
+                new_positions.append(pos)
+                new_collected_keys |= KEY_POSES.get(pos, 0)
+                new_costs.append(current_costs[i] + cost)
+
+            if not all(current_positions[i] == new_positions[i] for i in range(4)):
+                Q.append((new_positions, new_costs, new_collected_keys))
+
+    return min_cost
 
 
 class Mappings:
@@ -120,7 +187,7 @@ if __name__ == "__main__":
 
     mappings = Mappings()
     walls = set()
-    start = None
+    portals = []
 
     bit_keys = {}
     ALL_KEYS = 0
@@ -143,9 +210,7 @@ if __name__ == "__main__":
                 walls.add(p)
 
             elif c == "@":
-                start = p
+                portals.append(p)
 
-    assert start
-
-    print("FIRST PART", part_one(start, walls))
-    # print("SECOND PART", part_two(walls, keys, doors, start))
+    print("FIRST PART", part_one(portals[0], walls))
+    print("SECOND PART", part_two(portals, walls))
